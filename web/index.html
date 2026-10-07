@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nemotron Forge — Agentic Coding Engineer</title>
+<style>
+  body { background:#0d1117; color:#e6edf3; font-family:ui-monospace,Menlo,Consolas,monospace; margin:0; }
+  .wrap { max-width:900px; margin:0 auto; padding:24px 16px 64px; }
+  .card { background:#161b22; border:1px solid #30363d; border-radius:8px; padding:16px; margin-bottom:16px; }
+  textarea { width:100%; background:#0d1117; color:#e6edf3; border:1px solid #30363d; border-radius:6px; padding:10px; font:inherit; }
+  #runBtn { background:#238636; color:#fff; border:0; border-radius:6px; padding:10px 28px; font:inherit; cursor:pointer; margin-top:10px; }
+  .evt { border-left:3px solid #30363d; padding:8px 12px; margin:10px 0; background:#0d1117; }
+  .badge { font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; background:#1f6feb33; color:#58a6ff; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>⚡ Nemotron Forge</h1>
+    <p>Agentic coding engineer · NVIDIA Nemotron on Nebius Token Factory</p>
+    <textarea id="task" rows="3">Write a Python function that finds duplicate files in a directory by content hash, with tests</textarea><br>
+    <button id="runBtn">▶ Run agent</button>
+  </div>
+  <div class="card"><div id="log"><p>Press "Run agent" — the plan → act → observe loop streams here.</p></div></div>
+</div>
+<script>
+const log = document.getElementById("log");
+document.getElementById("runBtn").onclick = async () => {
+  const task = document.getElementById("task").value.trim();
+  log.innerHTML = "";
+  const r = await fetch("/api/run", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({task, mode:"scripted"})});
+  const j = await r.json();
+  const es = new EventSource("/api/events?run_id=" + j.run_id);
+  es.onmessage = (msg) => {
+    const ev = JSON.parse(msg.data);
+    if (ev.type === "finished" || ev.type === "error") { es.close(); return; }
+    if (ev.type === "result") { log.insertAdjacentHTML("beforeend", `<div class="evt"><span class="badge">DONE</span> ${ev.summary}</div>`); return; }
+    if (ev.type !== "event") return;
+    log.insertAdjacentHTML("beforeend", `<div class="evt"><span class="badge">${ev.tool.toUpperCase()}</span> #${ev.iter} <pre>${JSON.stringify(ev.call).slice(0,200)}</pre></div>`);
+  };
+};
+</script>
+</body>
+</html>
